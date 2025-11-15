@@ -41,6 +41,10 @@ on:
         description: 'BUILD_TARGET'
         required: true
         default: 'recovery'
+      TWRP_VERSION:
+        description: 'TWRP_VERSION (tag/branch/commit to pin bootable/recovery & vendor/twrp)'
+        required: true
+        default: '3.6.2'
 
 jobs:
   build:
@@ -60,6 +64,7 @@ jobs:
         echo "Device Name: ${{ github.event.inputs.DEVICE_NAME }}"
         echo "Makefile Name: ${{ github.event.inputs.MAKEFILE_NAME }}"
         echo "Build Target: ${{ github.event.inputs.BUILD_TARGET }}.img"
+        echo "TWRP Version Ref: ${{ github.event.inputs.TWRP_VERSION }}"
         echo "::endgroup::"
 
     # You might want to Checkout your repo first, but not mandatory
@@ -147,6 +152,26 @@ jobs:
       run: |
         repo sync -j$(nproc --all) --force-sync
       working-directory: workspace
+
+    - name: Pin TWRP Version
+      run: |
+        for repo in bootable/recovery vendor/twrp; do
+          if [ -d "$repo/.git" ]; then
+            git -C "$repo" fetch --all --tags || true
+            REF="${{ github.event.inputs.TWRP_VERSION }}"
+            if git -C "$repo" rev-parse -q --verify "refs/tags/$REF" >/dev/null; then
+              git -C "$repo" checkout -f "refs/tags/$REF"
+            elif git -C "$repo" rev-parse -q --verify "$REF^{commit}" >/dev/null; then
+              git -C "$repo" checkout -f "$REF"
+            elif git -C "$repo" show "origin/$REF" >/dev/null 2>&1; then
+              git -C "$repo" checkout -f "origin/$REF"
+            else
+              echo "TWRP version ref not found in $repo: $REF"
+            fi
+          fi
+        done
+      working-directory: ${{ steps.pwd.outputs.workspace-folder }}
+      continue-on-error: true
 
     - name: Clone device tree
       run: |
