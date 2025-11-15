@@ -10,19 +10,19 @@ on:
       MANIFEST_BRANCH:
         description: 'MANIFEST_BRANCH'
         required: true
-        default: 'twrp-7.1'
+        default: 'twrp-9.0'
       DEVICE_TREE_URL:
         description: 'DEVICE_TREE_URL'
         required: true
-        default: 'https://github.com/ycly2333/android_device_EEBBK_H3000S-twrp'
+        default: 'https://github.com/qingzhenzi/android_device_oppo_oppo6765_19181'
       DEVICE_TREE_BRANCH:
         description: 'DEVICE_TREE_BRANCH'
         required: true
-        default: 'twrp-7.1'
+        default: 'main'
       DEVICE_PATH:
         description: 'DEVICE_PATH'
         required: true
-        default: 'device/EEBBK/H3000S'
+        default: 'device/oppo/oppo6765_19181'
       COMMON_TREE_URL:
         description: 'COMMON_TREE_URL (if no common tree, leave blank)'
         required: false
@@ -32,11 +32,11 @@ on:
       DEVICE_NAME:
         description: 'DEVICE_NAME'
         required: true
-        default: 'H3000S'
+        default: 'oppo6765_19181'
       MAKEFILE_NAME:
         description: 'MAKEFILE_NAME'
         required: true
-        default: 'omni_H3000S'
+        default: 'omni_oppo6765_19181'
       BUILD_TARGET:
         description: 'BUILD_TARGET'
         required: true
@@ -94,6 +94,22 @@ jobs:
         pyenv install 2.7.18
         echo 'export PYENV_ROOT="$HOME/.pyenv"' >> $GITHUB_ENV
         echo 'export PATH="$PYENV_ROOT/bin:$PATH"' >> $GITHUB_ENV
+
+        export PYENV_ROOT="$HOME/.pyenv"
+        export PATH="$PYENV_ROOT/versions/2.7.18/bin:$PATH"
+        eval "$(pyenv init -)"
+        pyenv versions || true
+        
+    - name: Install compatibility libs
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y e2fsprogs
+        sudo apt-get install -y libncurses5 libtinfo5 || true
+        sudo apt-get install -y libncurses6 libtinfo6
+        sudo ln -sf /usr/lib/x86_64-linux-gnu/libncurses.so.6 /usr/lib/x86_64-linux-gnu/libncurses.so.5
+        sudo ln -sf /usr/lib/x86_64-linux-gnu/libtinfo.so.6 /usr/lib/x86_64-linux-gnu/libtinfo.so.5
+        echo "LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+        
 
     - name: Install OpenJDK
       uses: actions/setup-java@v4
@@ -159,10 +175,11 @@ jobs:
 
     - name: Building recovery
       run: |
+        env
         export PYENV_ROOT="$HOME/.pyenv"
         export PATH="$PYENV_ROOT/versions/2.7.18/bin:$PATH"
-        eval "$(pyenv init -)"
-        pyenv versions || true
+        sleep 5
+        echo "___________________________________"
         source build/envsetup.sh
         export ALLOW_MISSING_DEPENDENCIES=true
         lunch ${{ github.event.inputs.MAKEFILE_NAME }}-eng && make clean && make ${{ github.event.inputs.BUILD_TARGET }}image -j$(nproc --all)
