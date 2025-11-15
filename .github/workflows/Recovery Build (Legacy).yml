@@ -148,34 +148,34 @@ jobs:
 
     
     - name: Setup Python2 via pyenv
-    run: |
-      sudo apt-get -y install build-essential libssl-dev zlib1g-dev libbz2-dev \
-      libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev \
-      xz-utils tk-dev libffi-dev liblzma-dev
-      curl https://pyenv.run | bash
-      export PYENV_ROOT="$HOME/.pyenv"
-      export PATH="$PYENV_ROOT/bin:$PATH"
-      eval "$(pyenv init -)"
-      pyenv install 2.7.18
-
-      sudo apt-get -y install build-essential libssl-dev zlib1g-dev libbz2-dev \
+      run: |
+        sudo apt-get -y install build-essential libssl-dev zlib1g-dev libbz2-dev \
         libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev \
         xz-utils tk-dev libffi-dev liblzma-dev
-      echo 'export PYENV_ROOT="$HOME/.pyenv"' >> $GITHUB_ENV
-      echo 'export PATH="$PYENV_ROOT/bin:$PATH"' >> $GITHUB_ENV
-    shell: bash
+        curl https://pyenv.run | bash
+        export PYENV_ROOT="$HOME/.pyenv"
+        export PATH="$PYENV_ROOT/bin:$PATH"
+        eval "$(pyenv init -)"
+        pyenv install 2.7.18
+
+        sudo apt-get -y install build-essential libssl-dev zlib1g-dev libbz2-dev \
+          libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev \
+          xz-utils tk-dev libffi-dev liblzma-dev
+        echo 'export PYENV_ROOT="$HOME/.pyenv"' >> $GITHUB_ENV
+        echo 'export PATH="$PYENV_ROOT/bin:$PATH"' >> $GITHUB_ENV
+      shell: bash
 
     - name: Building recovery
-    run: |
-      rm /usr/bin/python
-      export PYENV_ROOT="$HOME/.pyenv"
-      export PATH="$PYENV_ROOT/versions/2.7.18/bin:$PATH"
-      eval "$(pyenv init -)"
-      pyenv versions || true
-      source build/envsetup.sh
-      export ALLOW_MISSING_DEPENDENCIES=true
-      lunch ${{ github.event.inputs.MAKEFILE_NAME }}-eng && make clean && make ${{ github.event.inputs.BUILD_TARGET }}image -j$(nproc --all)
-    working-directory: ${{ steps.pwd.outputs.workspace-folder }}
+      run: |
+        rm /usr/bin/python
+        export PYENV_ROOT="$HOME/.pyenv"
+        export PATH="$PYENV_ROOT/versions/2.7.18/bin:$PATH"
+        eval "$(pyenv init -)"
+        pyenv versions || true
+        source build/envsetup.sh
+        export ALLOW_MISSING_DEPENDENCIES=true
+        lunch ${{ github.event.inputs.MAKEFILE_NAME }}-eng && make clean && make ${{ github.event.inputs.BUILD_TARGET }}image -j$(nproc --all)
+      working-directory: ${{ steps.pwd.outputs.workspace-folder }}
       shell: bash
 
     - name: Upload to Release
