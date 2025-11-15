@@ -162,7 +162,16 @@ jobs:
             elif git -C "$repo" show "origin/$REF" >/dev/null 2>&1; then
               git -C "$repo" checkout -f "origin/$REF"
             else
-              echo "TWRP version ref not found in $repo: $REF"
+              echo "TWRP version ref not found in $repo: $REF, trying history search"
+              CAND=$(git -C "$repo" log -G "TW_VERSION_STR.*$REF" -n 1 --pretty=format:%H 2>/dev/null || true)
+              if [ -z "$CAND" ]; then
+                CAND=$(git -C "$repo" log -S "$REF" -n 1 --pretty=format:%H 2>/dev/null || true)
+              fi
+              if [ -n "$CAND" ]; then
+                git -C "$repo" checkout -f "$CAND"
+              else
+                echo "No matching commit found containing $REF in $repo"
+              fi
             fi
           fi
         done
@@ -173,6 +182,17 @@ jobs:
       run: |
         git clone ${{ github.event.inputs.DEVICE_TREE_URL }} -b ${{ github.event.inputs.DEVICE_TREE_BRANCH }} ./${{ github.event.inputs.DEVICE_PATH }}
       working-directory: ${{ steps.pwd.outputs.workspace-folder }}
+
+    - name: Override TWRP version string in device BoardConfig
+      run: |
+        BOARD_CFG="${{ steps.pwd.outputs.workspace-folder }}/${{ github.event.inputs.DEVICE_PATH }}/BoardConfig.mk"
+        if [ -f "$BOARD_CFG" ]; then
+          grep -q '^TW_DEVICE_SPECIFIC_VERSION' "$BOARD_CFG" && sed -i 's/^TW_DEVICE_SPECIFIC_VERSION.*/TW_DEVICE_SPECIFIC_VERSION := ${{ github.event.inputs.TWRP_VERSION }}/' "$BOARD_CFG" || echo "TW_DEVICE_SPECIFIC_VERSION := ${{ github.event.inputs.TWRP_VERSION }}" >> "$BOARD_CFG"
+          grep -q '^TW_DEVICE_VERSION' "$BOARD_CFG" && sed -i 's/^TW_DEVICE_VERSION.*/TW_DEVICE_VERSION := ${{ github.event.inputs.TWRP_VERSION }}/' "$BOARD_CFG" || echo "TW_DEVICE_VERSION := ${{ github.event.inputs.TWRP_VERSION }}" >> "$BOARD_CFG"
+        else
+          echo "BoardConfig.mk not found at $BOARD_CFG"
+        fi
+      shell: bash
 
     - name: Clone common tree
       if: |
